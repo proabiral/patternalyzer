@@ -1,0 +1,5 @@
+dev.jira.aa
+dev.jira.asana
+foobar.dog
+foobar.cat
+dev.internal
