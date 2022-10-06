@@ -26,11 +26,8 @@ func logic(domainMap map[int][][]string) {
 						if domain[k] == domain2[k] {
 							pattern += domain[k] + "."
 						} else {
-							// if domain[k] and domain2[k] contains _ or -
-							// split with _ and -
-							// loop and check if splitted part match and one part does not match.
 							noMatchCount++
-							// if no match on first word don't check other words
+							//if no match on first word don't check other words
 							if k == 0 {
 								break
 							}
@@ -52,7 +49,7 @@ func main() {
 
 	domainMap := make(map[int][][]string)
 
-	file, err := os.Open("/tmp/yahoo")
+	file, err := os.Open(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
