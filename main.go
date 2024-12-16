@@ -8,6 +8,36 @@ import (
 	"strings"
 )
 
+var joiner string
+
+func logic2(domainPart1 []string, domainPart2 []string) (output string) {
+	noMatchCount := 0
+
+	for i, _ := range domainPart1 {
+
+		if i == len(domainPart1)-1 {
+			joiner = "."
+		} else {
+			joiner = "-"
+		}
+
+		if domainPart1[i] == domainPart2[i] {
+			output += domainPart1[i] + joiner
+		} else {
+			noMatchCount++
+			output += "{replace_this}" + joiner
+		}
+	}
+
+	// to only print pattern with one replace_this , like this jira.{replace_this}.dev.foobar.example.com
+	// does not print pattern like this , jira.{replace_this}.{replace_this}.foobar.example.com
+	if noMatchCount == 1 {
+		return output
+	} else {
+		return ""
+	}
+}
+
 func logic(domainMap map[int][][]string) {
 
 	maxLength2process := 14
@@ -27,18 +57,34 @@ func logic(domainMap map[int][][]string) {
 							pattern += domain[k] + "."
 						} else {
 							noMatchCount++
-							//if no match on first word don't check other words
-							if k == 0 {
-								break
+
+							innerPattern := ""
+							if strings.Contains(domain[k], "-") && strings.Contains(domain2[k], "-") {
+								parts1 := strings.Split(domain[k], "-")
+								parts2 := strings.Split(domain2[k], "-")
+								partLength1 := len(parts1)
+								partLength2 := len(parts2)
+								if partLength1 == partLength2 {
+									innerPattern = logic2(parts1, parts2)
+								}
+							} else {
+								//if no match on first word don't check other words
+								if k == 0 {
+									break
+								}
 							}
-							pattern += "{replace_this}."
+							if innerPattern != "" {
+								pattern += innerPattern
+							} else {
+								pattern += "{replace_this}."
+							}
 						}
 					}
 				}
 				// to only print pattern with one replace_this , like this jira.{replace_this}.dev.foobar.example.com
 				// does not print pattern like this , jira.{replace_this}.{replace_this}.foobar.example.com
 				if noMatchCount == 1 && pattern != "" {
-					fmt.Println(pattern)
+					fmt.Println(strings.TrimSuffix(pattern, "."))
 				}
 			}
 		}
@@ -59,11 +105,10 @@ func main() {
 	// optionally, resize scanner's capacity for lines over 64K, see next example
 	for scanner.Scan() {
 		domain := scanner.Text()
-		// splitting domains with dot and arranging them according to length.
-		// split with dash(-) and underscope(_) in future ?
 		splittedDomain := strings.Split(domain, ".")
 		domainLength := len(splittedDomain)
 		domainMap[domainLength] = append(domainMap[domainLength], splittedDomain)
+
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -71,5 +116,4 @@ func main() {
 	}
 
 	logic(domainMap)
-
 }
