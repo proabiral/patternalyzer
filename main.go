@@ -66,9 +66,14 @@ func logic(domainMap map[int][][]string) {
 								partLength2 := len(parts2)
 								if partLength1 == partLength2 {
 									innerPattern = logic2(parts1, parts2)
+								} else {
+									//if no match on first word and number of dash on both not same, don't check other words
+									if k == 0 {
+										break
+									}
 								}
 							} else {
-								//if no match on first word don't check other words
+								//if no match on first word and no - in words , don't check other words
 								if k == 0 {
 									break
 								}
