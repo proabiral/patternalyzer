@@ -1,5 +1,7 @@
-dev.jira.aa
-dev.jira.asana
-foobar.dog
-foobar.cat
-dev.internal
+internal-dev.example.com
+internal-stage.example.com
+internal-kibana.example.com
+internal-jira.example.com
+internal.dev-jira-1.example.com
+internal.dev-kibana-1.example.com
+internal.dev-elastic-1.example.com
