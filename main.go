@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -13,8 +14,7 @@ var joiner string
 func logic2(domainPart1 []string, domainPart2 []string) (output string) {
 	noMatchCount := 0
 
-	for i, _ := range domainPart1 {
-
+	for i := range domainPart1 {
 		if i == len(domainPart1)-1 {
 			joiner = "."
 		} else {
@@ -29,8 +29,7 @@ func logic2(domainPart1 []string, domainPart2 []string) (output string) {
 		}
 	}
 
-	// to only print pattern with one replace_this , like this jira.{replace_this}.dev.foobar.example.com
-	// does not print pattern like this , jira.{replace_this}.{replace_this}.foobar.example.com
+	// Only return patterns with exactly one {replace_this}
 	if noMatchCount == 1 {
 		return output
 	} else {
@@ -38,21 +37,18 @@ func logic2(domainPart1 []string, domainPart2 []string) (output string) {
 	}
 }
 
-func logic(domainMap map[int][][]string) {
-
+func logic(domainMap map[int][][]string, wordlist []string) map[string]bool {
 	maxLength2process := 14
+	patterns := make(map[string]bool) // Use a map to deduplicate patterns
 
 	for i := 2; i <= maxLength2process; i++ {
-		//looping each domain of length i
 		for j, domain := range domainMap[i] {
 			for l, domain2 := range domainMap[i] {
 				pattern := ""
 				noMatchCount := 0
-				// looping each word of domain
-				for k, _ := range domain {
-					// if domain and domain2 are not same
+
+				for k := range domain {
 					if j != l {
-						// if word on domain and domain2 is same
 						if domain[k] == domain2[k] {
 							pattern += domain[k] + "."
 						} else {
@@ -67,13 +63,11 @@ func logic(domainMap map[int][][]string) {
 								if partLength1 == partLength2 {
 									innerPattern = logic2(parts1, parts2)
 								} else {
-									//if no match on first word and number of dash on both not same, don't check other words
 									if k == 0 {
 										break
 									}
 								}
 							} else {
-								//if no match on first word and no - in words , don't check other words
 								if k == 0 {
 									break
 								}
@@ -86,39 +80,86 @@ func logic(domainMap map[int][][]string) {
 						}
 					}
 				}
-				// to only print pattern with one replace_this , like this jira.{replace_this}.dev.foobar.example.com
-				// does not print pattern like this , jira.{replace_this}.{replace_this}.foobar.example.com
+
 				if noMatchCount == 1 && pattern != "" {
-					fmt.Println(strings.TrimSuffix(pattern, "."))
+					patterns[strings.TrimSuffix(pattern, ".")] = true
 				}
 			}
 		}
 	}
+
+	return patterns
+}
+
+func readWordlist(filePath string) ([]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var wordlist []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		wordlist = append(wordlist, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return wordlist, nil
 }
 
 func main() {
+	// Define command-line flags
+	wordlistFile := flag.String("w", "", "Path to the wordlist file")
+	flag.Parse()
+
+	if len(flag.Args()) < 1 {
+		log.Fatal("Usage: go run main.go [-w wordlist.txt] domains.txt")
+	}
 
 	domainMap := make(map[int][][]string)
 
-	file, err := os.Open(os.Args[1])
+	file, err := os.Open(flag.Args()[0])
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	// optionally, resize scanner's capacity for lines over 64K, see next example
 	for scanner.Scan() {
 		domain := scanner.Text()
 		splittedDomain := strings.Split(domain, ".")
 		domainLength := len(splittedDomain)
 		domainMap[domainLength] = append(domainMap[domainLength], splittedDomain)
-
 	}
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
 
-	logic(domainMap)
+	var wordlist []string
+	if *wordlistFile != "" {
+		wordlist, err = readWordlist(*wordlistFile)
+		if err != nil {
+			log.Fatalf("Error reading wordlist: %v", err)
+		}
+	}
+
+	patterns := logic(domainMap, wordlist)
+
+	// Print results
+	for pattern := range patterns {
+		if *wordlistFile != "" {
+			// Replace {replace_this} with words from the wordlist
+			for _, word := range wordlist {
+				fmt.Println(strings.Replace(pattern, "{replace_this}", word, 1))
+			}
+		} else {
+			// Print the pattern as is
+			fmt.Println(pattern)
+		}
+	}
 }
